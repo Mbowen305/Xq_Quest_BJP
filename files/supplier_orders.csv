@@ -1,0 +1,61 @@
+PO,Order Date,Supplier,Item,Qty,Unit Price,Total,Priority,Status
+PO-3100,02/08/2026,Isla Coffee Roasters,Espresso beans 5 lb,1,62,62,Medium,Pending
+PO-3101,02/08/2026,Paper & Cup Depot,Lids x1000,2,33,66,Medium,Received
+PO-3102,03/01/2026,Paper & Cup Depot,12 oz cups x500,2,41,82,Low,Back-ordered
+PO-3103,03/18/2026,Isla Coffee Roasters,Espresso beans 5 lb,2,62,124,Medium,Received
+PO-3104,03/25/2026,Dulce Bakery Supply,Guava pastry dough,6,44,264,Rush,Received
+PO-3105,03/24/2026,Paper & Cup Depot,12 oz cups x500,6,41,246,Low,Received
+PO-3106,01/26/2026,Isla Coffee Roasters,Cuban roast 5 lb,2,58,116,Medium,Back-ordered
+PO-3107,01/27/2026,Bay Dairy Co.,Oat milk case,7,36,252,Low,Received
+PO-3108,02/18/2026,Paper & Cup Depot,Lids x1000,6,33,198,Medium,Pending
+PO-3109,02/05/2026,Isla Coffee Roasters,Espresso beans 5 lb,7,62,434,Medium,Received
+PO-3110,03/02/2026,Paper & Cup Depot,12 oz cups x500,3,41,123,Low,Received
+PO-3111,01/23/2026,Paper & Cup Depot,Lids x1000,8,33,264,Low,Back-ordered
+PO-3112,02/27/2026,Isla Coffee Roasters,Espresso beans 5 lb,1,62,62,Low,Back-ordered
+PO-3113,02/01/2026,Dulce Bakery Supply,Guava pastry dough,1,44,44,Low,Back-ordered
+PO-3114,03/15/2026,Tropical Syrups,Vanilla syrup 6pk,1,39,39,Low,Received
+PO-3115,01/14/2026,Isla Coffee Roasters,Cuban roast 5 lb,2,58,116,Medium,Received
+PO-3116,01/18/2026,Dulce Bakery Supply,Flour 25 lb,1,19,19,High,Received
+PO-3117,03/03/2026,Dulce Bakery Supply,Guava pastry dough,2,44,88,Medium,Received
+PO-3118,03/09/2026,Isla Coffee Roasters,Decaf 2 lb,2,31,62,High,Pending
+PO-3119,03/14/2026,Dulce Bakery Supply,Guava pastry dough,3,44,132,High,Received
+PO-3120,01/10/2026,Tropical Syrups,Coconut syrup 6pk,7,42,294,Rush,Received
+PO-3121,03/02/2026,Isla Coffee Roasters,Espresso beans 5 lb,4,62,248,High,Received
+PO-3122,01/05/2026,Bay Dairy Co.,Oat milk case,1,36,36,Medium,Received
+PO-3123,03/21/2026,Paper & Cup Depot,12 oz cups x500,1,41,41,Low,Received
+PO-3124,01/15/2026,Isla Coffee Roasters,Decaf 2 lb,8,31,248,High,Received
+PO-3125,01/17/2026,Dulce Bakery Supply,Guava pastry dough,4,44,176,Rush,Pending
+PO-3126,02/04/2026,Paper & Cup Depot,12 oz cups x500,4,41,164,Medium,Received
+PO-3127,01/26/2026,Isla Coffee Roasters,Decaf 2 lb,2,31,62,Low,Pending
+PO-3128,02/21/2026,Tropical Syrups,Vanilla syrup 6pk,5,39,195,Medium,Back-ordered
+PO-3129,02/25/2026,Tropical Syrups,Vanilla syrup 6pk,6,39,234,High,Received
+PO-3130,02/27/2026,Isla Coffee Roasters,Decaf 2 lb,3,31,93,Medium,Received
+PO-3131,02/28/2026,Isla Coffee Roasters,Decaf 2 lb,1,31,31,Rush,Received
+PO-3132,01/25/2026,Isla Coffee Roasters,Cuban roast 5 lb,8,58,464,Medium,Pending
+PO-3133,03/23/2026,Isla Coffee Roasters,Decaf 2 lb,4,31,124,Low,Received
+PO-3134,03/17/2026,Paper & Cup Depot,Lids x1000,7,33,231,Medium,Received
+PO-3135,01/24/2026,Dulce Bakery Supply,Guava pastry dough,6,44,264,Low,Received
+PO-3136,03/03/2026,Isla Coffee Roasters,Espresso beans 5 lb,2,62,124,Medium,Received
+PO-3137,02/04/2026,Dulce Bakery Supply,Flour 25 lb,2,19,38,Medium,Received
+PO-3138,01/24/2026,Tropical Syrups,Coconut syrup 6pk,7,42,294,Low,Back-ordered
+PO-3139,03/26/2026,Isla Coffee Roasters,Decaf 2 lb,6,31,186,High,Pending
+PO-3140,03/15/2026,Tropical Syrups,Vanilla syrup 6pk,3,39,117,Medium,Received
+PO-3141,01/11/2026,Isla Coffee Roasters,Cuban roast 5 lb,8,58,464,Medium,Received
+PO-3142,02/09/2026,Isla Coffee Roasters,Decaf 2 lb,8,31,248,Low,Received
+PO-3143,01/29/2026,Isla Coffee Roasters,Cuban roast 5 lb,4,58,232,Low,Received
+PO-3144,01/15/2026,Paper & Cup Depot,Lids x1000,8,33,264,Medium,Received
+PO-3145,03/02/2026,Isla Coffee Roasters,Espresso beans 5 lb,6,62,372,Rush,Back-ordered
+PO-3146,02/09/2026,Isla Coffee Roasters,Decaf 2 lb,6,31,186,Medium,Received
+PO-3147,03/23/2026,Paper & Cup Depot,12 oz cups x500,3,41,123,Rush,Received
+PO-3148,03/19/2026,Isla Coffee Roasters,Decaf 2 lb,8,31,248,Medium,Pending
+PO-3149,02/12/2026,Tropical Syrups,Vanilla syrup 6pk,3,39,117,Medium,Back-ordered
+PO-3150,01/30/2026,Tropical Syrups,Vanilla syrup 6pk,6,39,234,High,Received
+PO-3151,01/12/2026,Isla Coffee Roasters,Espresso beans 5 lb,1,62,62,Low,Received
+PO-3152,01/20/2026,Paper & Cup Depot,12 oz cups x500,8,41,328,Rush,Pending
+PO-3153,02/24/2026,Dulce Bakery Supply,Guava pastry dough,7,44,308,Low,Back-ordered
+PO-3154,03/01/2026,Isla Coffee Roasters,Decaf 2 lb,4,31,124,Medium,Received
+PO-3155,01/30/2026,Bay Dairy Co.,Whole milk case,2,28,56,Low,Received
+PO-3156,02/10/2026,Dulce Bakery Supply,Guava pastry dough,8,44,352,Medium,Received
+PO-3157,03/05/2026,Isla Coffee Roasters,Cuban roast 5 lb,1,58,58,Medium,Received
+PO-3158,03/18/2026,Bay Dairy Co.,Oat milk case,1,36,36,Low,Back-ordered
+PO-3159,03/20/2026,Dulce Bakery Supply,Guava pastry dough,2,44,88,Medium,Back-ordered
