@@ -99,7 +99,7 @@ const FM_LEVELS = [
      answer:'1,290 in FY2026 and 1,930 in FY2030. A straight line adds the same 160 every year, so it ends up above the Base case, which slows down.',
      why:'Two methods that disagree start a useful argument: is the shop\'s growth slowing or not?'},
     {t:'Color the inputs', task:'Make every typed assumption on Drivers blue (E5:I15, E20:I22, and B18). Leave formulas black. The statements already follow this rule: look at the blue history on IS.',
-     steps:['Select E5:I15, hold {{Cmd}}, and add E20:I22 and B18.','Click the arrow next to [[Home > Font Color]] and pick Blue under Standard Colors.'],
+     steps:['Click E5 and drag to I15, so every row from 5 to 15 is selected (not just rows 5 and 15). Then hold {{Cmd}} and drag over E20:I22, and Cmd-click B18.','Click the arrow next to [[Home > Font Color]] and pick Blue under Standard Colors.'],
      why:'The modeling rule everywhere: blue is something a person typed, black is a formula. Anyone opening the file knows what they are allowed to change.'}
   ],
   quiz:[
@@ -299,8 +299,10 @@ const FM_CODES = [
 ];
 
 
-const FM_FILES = {"FM-0": "FM-0_Sneaker_Exchange_Statements.xlsx", "FM-1": "FM-1_Sneaker_Exchange_Forecast.xlsx", "FM-2": "FM-2_Sneaker_Exchange_Model.xlsx"};
-/* Excel Quest Financial Modeling checks (FM-0 to FM-2). Registered into XQ. Arrays are in quest order (fm-proto/data.js).
+const FM_FILES = {"FM-0": "FM-0_Sneaker_Exchange_Statements.xlsx", "FM-1": "FM-1_Sneaker_Exchange_Forecast.xlsx", "FM-2": "FM-2_Sneaker_Exchange_Model.xlsx", "FM-3": "FM-3_Sneaker_Exchange_Comps.xlsx", "FM-4": "FM-4_Sneaker_Exchange_DCF.xlsx", "FM-B": "FM-B_Sneaker_Exchange_Offer.xlsx"};
+/* Levels built but still in teacher playtest: only the teacher preview (#fm-teacher + passcode) shows them. Remove an id to open it to students. */
+const FM_TEACHER_ONLY = ["FM-3", "FM-4", "FM-B"];
+/* Excel Quest Financial Modeling checks (FM-0 to FM-B). Registered into XQ. Arrays are in quest order (fm-proto/data.js).
    Expected values are recomputed from each file's own inputs, so a student who changes a blue cell still passes. */
 (function(){
   const {cell,val,txt,norm,P,F} = XQC;
@@ -395,9 +397,16 @@ const FM_FILES = {"FM-0": "FM-0_Sneaker_Exchange_Statements.xlsx", "FM-1": "FM-1
         if(!/FORECAST|TREND\(/.test(f)) return F(`Drivers!${c}24 has ${fx(D,c+'24')}. Use FORECAST.LINEAR.`);
         const want=linFit(xs,ys,V(W,'Drivers',c+'3')); if(!close(num(val(D,c+'24')),want)) return F(`Drivers!${c}24 should be ${k1(want)}. Lock the known ranges with $ (IS!$B$4:$D$4 and $B$3:$D$3) and use ${c}$3 for the year.`); }
       return P(); },
-    W => { const D=W.sheets.Drivers;
-      for(let r=5;r<=15;r++) for(const c of FC){ if(!isBlue(cell(D,c+r))) return F(`Drivers!${c}${r} is a typed input but isn't blue. Select E5:I15 and pick Blue under Standard Colors.`); }
-      for(let r=20;r<=22;r++) for(const c of FC){ if(!isBlue(cell(D,c+r))) return F(`Drivers!${c}${r} (scenario growth) is a typed input. Make it blue.`); }
+    W => { const D=W.sheets.Drivers, START={5:.32,6:.18,7:.016,8:.02,9:3,10:90,11:19,12:.25,13:.08,14:20,15:30};
+      const hasF=[], notBlue=[];
+      for(let r=5;r<=15;r++) for(const c of FC){ const x=cell(D,c+r); if(x.f) hasF.push([c,r]); if(!isBlue(x)) notBlue.push([c,r]); }
+      if(hasF.length){ const [c,r]=hasF[0], s=START[r]<1?pct(START[r]):String(START[r]);
+        return F(`Drivers!${c}${r} should be a typed assumption, but it holds ${fx(D,c+r)}${hasF.length>1?` (${hasF.length} input cells hold formulas)`:''}. Type ${s} back in${hasF.length>1?' for each one':''}. A formula there usually comes from filling a history formula too far to the right.`); }
+      if(notBlue.length){ const rows=[...new Set(notBlue.map(x=>x[1]))];
+        return notBlue.length===1 ? F(`Drivers!${notBlue[0][0]}${notBlue[0][1]} is a typed input but isn't blue. Pick Blue under Standard Colors (not Theme Colors).`)
+          : F(`${notBlue.length} typed inputs on Drivers aren't blue yet (row${rows.length>1?'s':''} ${rows.join(', ')}). Click E5 and drag to I15 so every row from 5 to 15 is selected, then pick Blue under Standard Colors (not Theme Colors).`); }
+      const sc=[]; for(let r=20;r<=22;r++) for(const c of FC){ if(!isBlue(cell(D,c+r))) sc.push(c+r); }
+      if(sc.length) return F(`${sc.length===1?'Drivers!'+sc[0]+' (scenario growth) is a typed input':sc.length+' scenario growth cells in E20:I22 are typed inputs'}. Make ${sc.length===1?'it':'them'} blue.`);
       if(!isBlue(cell(D,'B18'))) return F('Drivers!B18 (the scenario) is an input too. Make it blue.');
       for(const c of FC){ if(isBlue(cell(D,c+'4'))) return F(`Drivers!${c}4 is a formula, so it should stay black.`); }
       return P(); }
@@ -438,10 +447,119 @@ const FM_FILES = {"FM-0": "FM-0_Sneaker_Exchange_Statements.xlsx", "FM-1": "FM-1
     null
   ];
 
+  /* ---------- comparable companies (FM-3) ---------- */
+  const PEER_ROWS = [5,6,7,8,9,10];
+  function qinc(xs, q){ const a=[...xs].sort((x,y)=>x-y); if(!a.length) return NaN; const p=(a.length-1)*q, lo=Math.floor(p), hi=Math.min(lo+1,a.length-1); return a[lo]+(a[hi]-a[lo])*(p-lo); }
+  const med = xs => qinc(xs, .5);
+  const mult = n => n.toFixed(2)+'x';
+  function peerMults(W){ const S=W.sheets.Comps, ys=PEER_ROWS.filter(r=>txt(S,'H'+r).toUpperCase()==='Y');
+    return {rev: ys.map(r=>V(W,'Comps','C'+r)/V(W,'Comps','D'+r)), ebitda: ys.map(r=>V(W,'Comps','C'+r)/V(W,'Comps','E'+r))}; }
+  const L3 = [
+    W => { const S=W.sheets.Comps, l=[]; PEER_ROWS.forEach(r=>{ l.push(['Comps','F'+r,V(W,'Comps','C'+r)/V(W,'Comps','D'+r),`EV divided by revenue: =C${r}/D${r}.`], ['Comps','G'+r,V(W,'Comps','C'+r)/V(W,'Comps','E'+r),`EV divided by EBITDA: =C${r}/E${r}.`]); });
+      const r=expect(W,l); if(!r.pass) return r;
+      for(const rr of PEER_ROWS) for(const c of ['F','G']){ const fm=(cell(S,c+rr).xf && cell(S,c+rr).xf.fmt)||''; if(!/x/i.test(fm.replace(/\\/g,''))) return F(`Comps!${c}${rr} is right but has no x on it. Select F5:G10, press Cmd+1, choose Custom, and type 0.0"x".`); }
+      return P(); },
+    W => { const S=W.sheets.Comps;
+      if(txt(S,'H10').toUpperCase()!=='N') return F(`Comps!H10 says ${txt(S,'H10')||'nothing'}. Read Courtline Athletic's description in B10: it makes its own shoes, so it isn't a true peer. Type N.`);
+      for(const r of [5,6,7,8,9]){ if(txt(S,'H'+r).toUpperCase()!=='Y') return F(`Comps!H${r} (${txt(S,'A'+r)}) should stay Y. Only Courtline Athletic leaves the peer set.`); }
+      return P(); },
+    W => { const S=W.sheets.Comps, m=peerMults(W), l=[];
+      [['B',m.rev,'F'],['C',m.ebitda,'G']].forEach(([c,xs,src])=>{ l.push([ 'Comps',c+'13',qinc(xs,.25),`=QUARTILE.INC(FILTER(${src}$5:${src}$10,$H$5:$H$10="Y"),1).`],
+        ['Comps',c+'14',med(xs),`=MEDIAN(FILTER(${src}$5:${src}$10,$H$5:$H$10="Y")).`], ['Comps',c+'15',qinc(xs,.75),`=QUARTILE.INC(FILTER(${src}$5:${src}$10,$H$5:$H$10="Y"),3).`]); });
+      for(const [sn,ref,want,hint] of l){ const c=cell(S,ref);
+        if(!c.f) return F(c.v===null||c.v===undefined||c.v==='' ? `Comps!${ref} is empty. ${hint}` : `Comps!${ref} holds a typed number. Make it a formula: ${hint}`);
+        if(!close(num(c.v),want)) return F(`Comps!${ref} shows ${typeof c.v==='number'?mult(c.v):(c.v||'nothing')}. Using only the peers marked Y, it should be ${mult(want)}. ${hint}`);
+        if(!/\$?H\$?5/.test(norm(c.f))) return F(`Comps!${ref} has the right number, but the formula doesn't read the Y/N column. Use FILTER with $H$5:$H$10="Y" so the peer set can change.`); }
+      return P(); },
+    W => { const l=[], rev=V(W,'IS','D4'), eb=V(W,'IS','D16');
+      [0,1,2].forEach(i=>{ l.push(['Comps','B'+(18+i),V(W,'Comps','B'+(13+i))*rev,`Multiple times FY2025 revenue: =B${13+i}*IS!$D$4.`], ['Comps','C'+(18+i),V(W,'Comps','C'+(13+i))*eb,`Multiple times FY2025 EBITDA: =C${13+i}*IS!$D$16.`]); });
+      const r=expect(W,l); if(!r.pass) return r;
+      for(const ref of ['B18','B19','B20','C18','C19','C20']){ if(!/IS!/.test(norm(cell(W.sheets.Comps,ref).f))) return F(`Comps!${ref} has the right number but doesn't point at the income statement. Link it to IS!$D$4 or IS!$D$16 so it updates.`); }
+      return P(); },
+    W => { const nd=V(W,'BS','D11')-V(W,'BS','D4'); let r=expect(W,[['Comps','B27',nd,'Loan minus cash in FY2025: =BS!D11-BS!D4.']]); if(!r.pass) return r;
+      const l=[]; [0,1,2].forEach(i=>{ l.push(['Comps','B'+(23+i),V(W,'Comps','B'+(18+i))-V(W,'Comps','B27'),`Enterprise value minus net debt: =B${18+i}-$B$27.`], ['Comps','C'+(23+i),V(W,'Comps','C'+(18+i))-V(W,'Comps','B27'),`=C${18+i}-$B$27.`]); });
+      return expect(W,l); }
+  ];
+
+  /* ---------- discounted cash flow (FM-4) ---------- */
+  const fcfOf = W => FC.map(c=>V(W,'DCF',c+'10'));
+  function eqAt(W, r, g){ const f=fcfOf(W), nd=V(W,'DCF','C23'); let pv=0; f.forEach((x,i)=>{ pv+=x/Math.pow(1+r,i+1); }); return pv + f[4]*(1+g)/(r-g)/Math.pow(1+r,5) - nd; }
+  const L4 = [
+    W => { const l=[]; FC.forEach(c=>{ const ebit=V(W,'IS',c+'11'), tax=-ebit*V(W,'Drivers',c+'12'), da=V(W,'IS',c+'10'), cap=V(W,'CF',c+'11'), wc=V(W,'CF',c+'6')+V(W,'CF',c+'7')+V(W,'CF',c+'8');
+        l.push(['DCF',c+'4',ebit,`=IS!${c}11.`], ['DCF',c+'5',tax,`Tax on EBIT, as a negative: =-${c}4*Drivers!${c}12.`], ['DCF',c+'6',ebit+tax,`=${c}4+${c}5.`],
+          ['DCF',c+'7',da,`=IS!${c}10.`], ['DCF',c+'8',cap,`Capex is already negative on CF: =CF!${c}11.`], ['DCF',c+'9',wc,`The three working-capital rows on CF: =SUM(CF!${c}6:${c}8).`],
+          ['DCF',c+'10',ebit+tax+da+cap+wc,`=${c}6+${c}7+${c}8+${c}9.`]); });
+      return expect(W,l); },
+    W => { const D=W.sheets.DCF, r=V(W,'DCF','C16');
+      for(let i=0;i<5;i++){ const c=FC[i]; if(!close(V(W,'DCF',c+'12'),i+1)) return F(`DCF!${c}12 should be ${i+1}. Type 1 to 5 across E12:I12.`); }
+      const l=[]; FC.forEach((c,i)=>{ const df=1/Math.pow(1+r,i+1); l.push(['DCF',c+'13',df,`=1/(1+$C$16)^${c}12. Lock C16 with $ signs.`], ['DCF',c+'14',V(W,'DCF',c+'10')*df,`=${c}10*${c}13.`]); });
+      return expect(W,l); },
+    W => { const r=V(W,'DCF','C16'), f=fcfOf(W); let npv=0; f.forEach((x,i)=>{ npv+=x/Math.pow(1+r,i+1); });
+      let res=expect(W,[['DCF','C19',FC.reduce((t,c)=>t+V(W,'DCF',c+'14'),0),'=SUM(E14:I14).'], ['DCF','C18',npv,'=NPV(C16,E10:I10). Start the range at the first forecast year, not a today amount.']]); if(!res.pass) return res;
+      return /NPV\(/.test(norm(cell(W.sheets.DCF,'C18').f)) ? P() : F(`DCF!C18 has the right number but not the NPV function. Use =NPV(C16,E10:I10) so you see both methods agree.`); },
+    W => { const r=V(W,'DCF','C16'), g=V(W,'DCF','C17'), last=V(W,'DCF','I10');
+      if(!(r>g)) return F(`The discount rate in C16 has to be bigger than the growth rate in C17, or the terminal value formula breaks.`);
+      const tv=last*(1+g)/(r-g);
+      return expect(W,[['DCF','C20',tv,'Next year\'s cash flow divided by (rate - growth): =I10*(1+C17)/(C16-C17).'], ['DCF','C21',V(W,'DCF','C20')/Math.pow(1+r,5),'Discount it 5 years: =C20/(1+C16)^5.']]); },
+    W => { const ev=V(W,'DCF','C19')+V(W,'DCF','C21'), nd=V(W,'BS','D11')-V(W,'BS','D4');
+      return expect(W,[['DCF','C22',ev,'=C19+C21.'], ['DCF','C23',nd,'Loan minus cash in FY2025: =BS!D11-BS!D4.'], ['DCF','C24',V(W,'DCF','C22')-V(W,'DCF','C23'),'=C22-C23.'],
+        ['DCF','C25',V(W,'DCF','C21')/V(W,'DCF','C22'),'=C21/C22.',true]]); },
+    W => { const D=W.sheets.DCF;
+      let res=expect(W,[['DCF','B28',V(W,'DCF','C24'),'The corner cell points at equity value: =C24.']]); if(!res.pass) return res;
+      const rates=[29,30,31,32,33].map(r=>V(W,'DCF','B'+r)), grow=['C','D','E','F','G'].map(c=>V(W,'DCF',c+'28'));
+      if(rates.some(x=>!isFinite(x))) return F('Type the discount rates 12%, 13%, 14%, 15%, 16% down B29:B33.');
+      if(grow.some(x=>!isFinite(x))) return F('Type the growth rates 2.0%, 2.5%, 3.0%, 3.5%, 4.0% across C28:G28.');
+      if(rates.some(x=>x>1) || grow.some(x=>x>1)) return F('The rates look like whole numbers (14 instead of 14%). Type them with a % sign.');
+      const dtCell=Object.values(D.cells).find(c=>c.dt);
+      const vals=[29,30,31,32,33].map(r=>['C','D','E','F','G'].map(c=>num(val(D,c+r))));
+      if(!dtCell){ return vals.flat().every(x=>!isFinite(x)) ? F('C29:G33 is empty. Select B28:G33 and choose Data, What-If Analysis, Data Table.')
+          : F('C29:G33 has numbers but no Data Table. Clear C29:G33, select B28:G33, and choose Data, What-If Analysis, Data Table.'); }
+      if(!dtCell.dt.dt2D) return F('That Data Table only uses one input. Rebuild it with both: Row input cell C17, Column input cell C16.');
+      const ok=(rr,gg)=>vals.every((row,i)=>row.every((x,j)=>close(x,eqAt(W,rr(i,j),gg(i,j)))));
+      if(vals.flat().some(x=>!isFinite(x))) return F('The Data Table has no numbers yet. Press Cmd+= to calculate, then save.');
+      if(ok((i,j)=>rates[i],(i,j)=>grow[j])) return P();
+      if(ok((i,j)=>grow[j],(i,j)=>rates[i])) return F('The inputs are swapped. Rebuild it with Row input cell C17 (growth runs across row 28) and Column input cell C16 (rates run down column B).');
+      return F(`The table's numbers don't match the model. Base case at ${pct(V(W,'DCF','C16'))} and ${pct(V(W,'DCF','C17'))} should be ${k1(V(W,'DCF','C24'))}. Check that B28 is =C24, then rebuild with Row input C17 and Column input C16.`); }
+  ];
+
+  /* ---------- the investor's offer (FM-B) ---------- */
+  const dcfRange = W => { const xs=[]; for(let r=29;r<=33;r++) for(const c of ['C','D','E','F','G']){ const x=num(val(W.sheets.DCF,c+r)); if(isFinite(x)) xs.push(x); } return xs; };
+  const LB = [
+    W => expect(W,[['Summary','B5',V(W,'Summary','B3')/V(W,'Summary','B4'),'Investment divided by stake: =B3/B4.'], ['Summary','B6',V(W,'Summary','B5')-V(W,'Summary','B3'),'Post-money minus the investment: =B5-B3.']]),
+    W => { const S=W.sheets.Summary, d=dcfRange(W); if(!d.length) return F('The DCF sensitivity table (DCF!C29:G33) has no numbers. Open the file in Excel, press Cmd+= and save.');
+      const l=[['Summary','B9',V(W,'Comps','B23'),'=Comps!B23.'], ['Summary','C9',V(W,'Comps','B25'),'=Comps!B25.'], ['Summary','B10',V(W,'Comps','C23'),'=Comps!C23.'], ['Summary','C10',V(W,'Comps','C25'),'=Comps!C25.'],
+        ['Summary','B11',Math.min(...d),'=MIN(DCF!C29:G33).'], ['Summary','C11',Math.max(...d),'=MAX(DCF!C29:G33).']];
+      let r=expect(W,l); if(!r.pass) return r;
+      for(const ref of ['B9','C9','B10','C10']){ if(!/COMPS!/.test(norm(cell(S,ref).f))) return F(`Summary!${ref} has the right number but doesn't link to the Comps sheet. Point at it so the chart updates.`); }
+      return expect(W,[9,10,11].map(k=>['Summary','D'+k,V(W,'Summary','C'+k)-V(W,'Summary','B'+k),`High minus low: =C${k}-B${k}.`])); },
+    W => { const S=W.sheets.Summary, all=(S.charts||[]).concat(...Object.values(W.chartsheets||{}).map(c=>c.charts||[]));
+      if(!all.length) return F('There is no chart yet. Select A9:B11, hold Cmd, add D9:D11, and choose Insert, Bar, Stacked Bar.');
+      const bar=all.find(ch=>ch.kinds && ch.kinds.some(k=>k.kind==='barChart'));
+      if(!bar) return F('The chart isn\'t a bar chart. Delete it and choose Insert, Bar, Stacked Bar.');
+      const k=bar.kinds.find(k=>k.kind==='barChart');
+      if(k.barDir!=='bar') return F('That\'s a column chart (vertical bars). A football field uses horizontal bars: choose Insert, Bar, Stacked Bar.');
+      if(k.grouping!=='stacked') return F('The bars need to be stacked, so the spread sits on top of the low value. Change the chart type to Stacked Bar.');
+      const lowS=bar.series.find(s=>/B\$?9:\$?B\$?11/.test(norm(s.val))), sprS=bar.series.find(s=>/D\$?9:\$?D\$?11/.test(norm(s.val)));
+      if(!lowS || !sprS) return F('The chart should use two series: the low values (B9:B11) and the spread (D9:D11), with the method names in A9:A11 as categories.');
+      if(bar.series.some(s=>/C\$?9:\$?C\$?11/.test(norm(s.val)))) return F('Leave the High column (C9:C11) out of the chart. Low plus spread already reaches the high value.');
+      if(!lowS.noFill) return F('The Low bars still show. Right-click them, choose Format Data Series, and set Fill to No Fill so each bar floats.');
+      if(!/1,?000|OFFER/i.test(bar.title||'')) return F(`The chart title ${bar.title?'"'+bar.title+'"':'is missing. It'} should name the offer, like Equity value ($000) vs. offer at 1,000.`);
+      return P(); },
+    W => { const S=W.sheets.Summary, c=cell(S,'B14');
+      if(!c.f) return F(c.v ? 'Summary!B14 holds typed text. Make it a formula so the call updates when the model changes.' : 'Summary!B14 is empty. =IF(B6<DCF!C24,"Counter: the offer is below our base case","Accept: the offer meets our base case")');
+      const f=norm(c.f); if(f.indexOf('IF(')<0 || !/DCF!\$?C\$?24/.test(f) || !/B\$?6/.test(f)) return F(`Summary!B14 has ${fx(S,'B14')}. Compare the pre-money in B6 with the DCF base case in DCF!C24 inside an IF.`);
+      const want=V(W,'Summary','B6')<V(W,'DCF','C24') ? 'COUNTER' : 'ACCEPT';
+      return txt(S,'B14').toUpperCase().indexOf(want)===0 ? P() : F(`Summary!B14 says ${txt(S,'B14')||'nothing'}. With pre-money at ${k1(V(W,'Summary','B6'))} and the base case at ${k1(V(W,'DCF','C24'))}, it should start with ${want==='COUNTER'?'Counter':'Accept'}. Check which way the < points.`); },
+    null
+  ];
+
   const reg = XQ.register;
   reg('FM-0', {check:L0, sheets:['IS','BS','CF','Notes','Sort It']});
   reg('FM-1', {check:L1, sheets:['Drivers','IS','BS','CF','Notes']});
   reg('FM-2', {check:L2, sheets:['Drivers','IS','BS','CF','Notes']});
+  reg('FM-3', {check:L3, sheets:['Drivers','IS','BS','CF','Notes','Comps']});
+  reg('FM-4', {check:L4, sheets:['Drivers','IS','BS','CF','Notes','Comps','DCF']});
+  reg('FM-B', {check:LB, sheets:['Drivers','IS','BS','CF','Notes','Comps','DCF','Summary']});
 })();
 
 /* Excel Quest · Financial Modeling world (live-site module). Loads after the grader scripts and before the main app script.
@@ -507,7 +625,7 @@ window.XQFM = (function(){
     <section class="world frame" style="opacity:.75"><div class="world-head"><h2 style="color:var(--muted)">WHAT'S INSIDE</h2><span class="exam">${FM_LEVELS.length} levels</span></div>
       <div class="path">${FM_LEVELS.map(l=>`<div class="node locked"><span class="num">${l.id}</span><span class="nm">${esc(l.name)}</span><span class="dm">${esc(l.topic)}</span></div>`).join('')}</div></section>`;
   }
-  const built = id => !!FM_FILES[id];
+  const built = id => !!FM_FILES[id] && (FM_TEACHER_ONLY.indexOf(id)<0 || preview());
   function mapScreen(c){
     return `${preview() && !earned(c) && !fs.unlocked?`<p class="fm-banner">TEACHER PREVIEW · Students see this world only after every MOS and TOSA level is starred. <button type="button" class="retry" data-fmexit>Exit preview</button></p>`:''}
     <section class="title-screen fm-title"><div class="over">EXCEL QUEST · BONUS WORLD · UNLOCKED</div><h1>FINANCIAL<br>MODELING</h1>
@@ -519,7 +637,7 @@ window.XQFM = (function(){
     <section class="world frame fmw"><div class="world-head"><h2>FINANCIAL MODELING WORLD</h2><span class="exam">Primer + 4 levels + boss</span></div>
       <p class="blurb">Work in order. Every level file starts with the finished work from the level before, so one rough level never blocks the next.</p>
       <div class="path">${FM_LEVELS.map(l=>{ const s=fmStats(l); return built(l.id)
-        ? `<a class="node" href="#fm-${l.id}">${s.done===s.total?'<span class="star">★ CLEAR</span>':''}<span class="num">${l.id}</span><span class="nm">${esc(l.name)}</span><span class="dm">${esc(l.topic)}</span><span class="ct">${s.done}/${s.total} quests · ${s.f}/${s.q} check</span><span class="bar"><i style="width:${Math.round(100*s.done/s.total)}%"></i></span></a>`
+        ? `<a class="node" href="#fm-${l.id}">${s.done===s.total?'<span class="star">★ CLEAR</span>':''}<span class="num">${l.id}</span><span class="nm">${esc(l.name)}</span><span class="dm">${esc(l.topic)}</span>${FM_TEACHER_ONLY.indexOf(l.id)>=0?'<span class="ct" style="color:var(--gold)">Playtest · hidden from students</span>':''}<span class="ct">${s.done}/${s.total} quests · ${s.f}/${s.q} check</span><span class="bar"><i style="width:${Math.round(100*s.done/s.total)}%"></i></span></a>`
         : `<div class="node locked"><span class="num">${l.id}</span><span class="nm">${esc(l.name)}</span><span class="dm">${esc(l.topic)}</span><span class="ct">Coming soon</span></div>`; }).join('')}</div></section>
     <div class="cards" style="margin-top:28px">
       <a class="frame box fm-card" href="#fm-lab"><h3 style="color:var(--mint)">MODEL LAB</h3><p>The finished model, live. Change any assumption and watch the statements, the DCF, and the football field move. Includes a bug hunt.</p></a>
