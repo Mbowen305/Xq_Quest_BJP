@@ -318,12 +318,31 @@ const FM_TEACHER_ONLY = ["FM-3", "FM-4", "FM-B"];
   const rgb = h => [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
   const isBlue = c => { const h=(c && c.xf && c.xf.font && c.xf.font.color) || ''; if(h.length!==6) return false; const [r,g,b]=rgb(h); return b>=128 && b>r+60 && b>g+40; };
   /* one expectation: [sheetName, ref, expected, hint]; formula required unless noF */
+  /* Numbers in messages: $000 amounts as 1,234.5 with negatives in parentheses; small ratios keep 3 decimals. */
+  const nfmt = n => { const a=Math.abs(n), s=(a<10 && Math.abs(a-Math.round(a))>1e-9) ? a.toFixed(3) : k1(a); return n<0 ? '('+s+')' : s; };
+  /* First cell a formula points at that is empty or not a number, e.g. "IS!G6". */
+  function firstEmptyRef(W, sn, f){
+    let m; const src=(f||'').replace(/"[^"]*"/g,'');
+    const re2=/(?:(?:'([^']+)'|([A-Za-z][A-Za-z0-9]*))!)?\$?([A-Z]{1,3})\$?(\d+)(?!\s*\()(?!:)/g;
+    while((m=re2.exec(src))){ const sheet=m[1]||m[2]||sn, ref=m[3]+m[4]; if(!W.sheets[sheet]) continue;
+      if(src[m.index-1]===':') continue;
+      const x=num(val(W.sheets[sheet],ref)); if(!isFinite(x)) return sheet+'!'+ref; }
+    /* then cells inside ranges, e.g. SUM(E4:E7) with cash in E4 still empty */
+    const re3=/(?:(?:'([^']+)'|([A-Za-z][A-Za-z0-9]*))!)?(\$?[A-Z]{1,3}\$?\d+:\$?[A-Z]{1,3}\$?\d+)/g;
+    while((m=re3.exec(src))){ const sheet=m[1]||m[2]||sn; if(!W.sheets[sheet]) continue; const cs=XQC.cellsIn(m[3]); if(cs.length>60) continue;
+      for(const ref of cs){ const x=num(val(W.sheets[sheet],ref)); if(!isFinite(x)) return sheet+'!'+ref; } }
+    return null;
+  }
   function expect(W, list, noF){
     for(const [sn, ref, want, hint, fmtPct] of list){
       const S = W.sheets[sn], c = cell(S,ref);
       if(!noF && !c.f) return F(c.v===null||c.v===undefined||c.v==='' ? `${sn}!${ref} is empty. ${hint}` : `${sn}!${ref} holds a typed number. Make it a formula so it updates: ${hint}`);
       if(typeof want==='string'){ if(txt(S,ref).toUpperCase()!==want.toUpperCase()) return F(`${sn}!${ref} shows ${txt(S,ref)||'nothing'}, not ${want}. ${hint}`); continue; }
-      if(!close(num(c.v), want)) return F(`${sn}!${ref} shows ${typeof c.v==='number'?k1(c.v):(c.v||'nothing')}. It should be ${Math.abs(want)<2?pct(want):k1(want)}. ${hint}`);
+      if(typeof want==='number' && !isFinite(want)){ const gap=firstEmptyRef(W, sn, c.f);
+        return F(gap ? `${sn}!${ref} can't be checked yet: ${gap} is empty or not a number. Fill that in first (finish the earlier quests), then turn the file in again.`
+          : `${sn}!${ref} can't be checked yet because a cell it depends on is empty. Finish the earlier quests first. ${hint}`); }
+      const show = n => fmtPct ? pct(n) : nfmt(n);
+      if(!close(num(c.v), want)) return F(`${sn}!${ref} shows ${typeof c.v==='number'?show(c.v):(c.v||'nothing')}. It should be ${show(want)}. ${hint}`);
       if(fmtPct && !isPct(c)) return F(`${sn}!${ref} is right but shows as a decimal. Format it as a percent: Cmd+1, Percentage.`);
     }
     return P();
@@ -504,7 +523,10 @@ const FM_TEACHER_ONLY = ["FM-3", "FM-4", "FM-B"];
     W => { const ev=V(W,'DCF','C19')+V(W,'DCF','C21'), nd=V(W,'BS','D11')-V(W,'BS','D4');
       return expect(W,[['DCF','C22',ev,'=C19+C21.'], ['DCF','C23',nd,'Loan minus cash in FY2025: =BS!D11-BS!D4.'], ['DCF','C24',V(W,'DCF','C22')-V(W,'DCF','C23'),'=C22-C23.'],
         ['DCF','C25',V(W,'DCF','C21')/V(W,'DCF','C22'),'=C21/C22.',true]]); },
-    W => { const D=W.sheets.DCF;
+    W => { const D=W.sheets.DCF, b28=cell(D,'B28');
+      if(!b28.f && (b28.v===null||b28.v===undefined||b28.v==='')){
+        const shifted=/C\$?24/.test(norm(cell(D,'C28').f)) || [29,30,31,32,33].some(r=>{ const x=num(val(D,'C'+r)); return x>0 && x<1; });
+        if(shifted) return F('Your table starts one column too far right. Column B may be hiding behind the frozen panes: choose View, Freeze Panes, Unfreeze Panes. Then clear C28:G33, put =C24 in B28, the rates 12% to 16% in B29:B33, and the growth rates 2% to 4% in C28:G28.'); }
       let res=expect(W,[['DCF','B28',V(W,'DCF','C24'),'The corner cell points at equity value: =C24.']]); if(!res.pass) return res;
       const rates=[29,30,31,32,33].map(r=>V(W,'DCF','B'+r)), grow=['C','D','E','F','G'].map(c=>V(W,'DCF',c+'28'));
       if(rates.some(x=>!isFinite(x))) return F('Type the discount rates 12%, 13%, 14%, 15%, 16% down B29:B33.');
@@ -518,6 +540,7 @@ const FM_TEACHER_ONLY = ["FM-3", "FM-4", "FM-B"];
       const ok=(rr,gg)=>vals.every((row,i)=>row.every((x,j)=>close(x,eqAt(W,rr(i,j),gg(i,j)))));
       if(vals.flat().some(x=>!isFinite(x))) return F('The Data Table has no numbers yet. Press Cmd+= to calculate, then save.');
       if(ok((i,j)=>rates[i],(i,j)=>grow[j])) return P();
+      if(vals.every(row=>row.every(x=>close(x,row[0])))) return F('Every column of the table shows the same numbers, so the growth rate never changes. Check that C28:G28 hold 2% to 4% and that the Row input cell is C17, then rebuild the Data Table.');
       if(ok((i,j)=>grow[j],(i,j)=>rates[i])) return F('The inputs are swapped. Rebuild it with Row input cell C17 (growth runs across row 28) and Column input cell C16 (rates run down column B).');
       return F(`The table's numbers don't match the model. Base case at ${pct(V(W,'DCF','C16'))} and ${pct(V(W,'DCF','C17'))} should be ${k1(V(W,'DCF','C24'))}. Check that B28 is =C24, then rebuild with Row input C17 and Column input C16.`); }
   ];
