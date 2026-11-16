@@ -315,7 +315,7 @@ button.press{border:0;cursor:pointer;color:var(--ink)}
 .cx-study .cx-used{margin-top:6px}
 /* codex-integrated */
 </style>
-<link rel="stylesheet" href="fm.css?v=20261110">
+<link rel="stylesheet" href="fm.css?v=20261110b">
 
 <header class="hud">
   <div class="hud-in">
@@ -628,7 +628,7 @@ const XQ = (function(){
     W => { const p=W.sheets.Bookings.page;
       if(p.orientation!=='landscape') return F('Bookings isn\'t set to Landscape.');
       if(!p.margins || !(near(p.margins.l,0.25,0.02) && near(p.margins.r,0.25,0.02) && near(p.margins.t,0.75,0.02))) return F('Bookings margins aren\'t Narrow. Use Page Layout, Margins, Narrow.');
-      if(!(p.fitToPage && p.fitW==='1' && (p.fitH==='0'))) return F('Bookings should fit all columns on one page: Width 1 page, Height Automatic.');
+      if(!(p.fitToPage && (p.fitW||'1')==='1' && (p.fitH==='0'))) return F('Bookings should fit all columns on one page: Width 1 page, Height Automatic.');
       return P(); },
     W => { const S=W.sheets.Inventory; const b=colWidth(S,'B'), c=colWidth(S,'C'), h=(S.rows[1]||{}).ht;
       if(!(b>=21.5 && b<=23.5)) return F(`Inventory column B is ${b?b.toFixed(1):'the default'} wide. Set it to 22.`);
@@ -1688,7 +1688,7 @@ window.XQCodex = {chapter, index, filter, cfmt};
 })();
 
 </script>
-<script src="fm.js?v=20261110"></script>
+<script src="fm.js?v=20261110b"></script>
 <script>
 (function(){
 const DATA = JSON.parse(document.getElementById('guide-data').textContent);
